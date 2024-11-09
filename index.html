@@ -29,10 +29,10 @@
             border-bottom: none;
         }
         .post .post-number {
-            margin-right: 10px; /* 投稿内容に番号を近づける */
+            margin-right: 10px;
             font-weight: bold;
             color: #555;
-            min-width: 30px; /* 幅を固定して整列 */
+            min-width: 30px;
             text-align: right;
         }
         .post .name {
@@ -48,6 +48,10 @@
             margin-top: 5px;
         }
     </style>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-firestore.js"></script>
 </head>
 <body>
 
@@ -71,16 +75,26 @@
 </div>
 
 <script>
-    // ページ読み込み時にローカルストレージから投稿を読み込む
+    // Firebase設定
+    const firebaseConfig = {
+        apiKey: "AIzaSyD9K9zoZAI3Rexmj1iVJ0mMtr9CYoWfQPY",
+        authDomain: "ch-f1171.firebaseapp.com",
+        projectId: "ch-f1171",
+        storageBucket: "ch-f1171.firebasestorage.app",
+        messagingSenderId: "713799996979",
+        appId: "1:713799996979:web:5a504f464c96f125eb7546"
+    };
+
+    // Firebase初期化
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore(app);
+
+    // ページ読み込み時にFirestoreから投稿を読み込む
     document.addEventListener("DOMContentLoaded", () => {
         loadPosts();
     });
 
-    // 他のタブやウィンドウでのローカルストレージの変更を監視し、反映
-    window.addEventListener("storage", () => {
-        loadPosts();
-    });
-
+    // 投稿をFirestoreに保存
     function postMessage() {
         const name = document.getElementById("name").value || "名無し";
         let message = document.getElementById("message").value;
@@ -90,45 +104,47 @@
             return;
         }
 
-        // 「>>番号 #delete」形式の削除コマンドが含まれるかチェック
-        const deleteMatch = message.match(/>>(\d+)\s+#delete/);
-        if (deleteMatch) {
-            const postNumberToDelete = parseInt(deleteMatch[1]);
-            deletePost(postNumberToDelete);
-            document.getElementById("postForm").reset();
-            return; // メッセージ送信をせずに終了
-        }
-
         // 現在時刻を取得してフォーマット
         const timestamp = new Date().toLocaleString();
 
         // メッセージ内の「>>番号」をリンクに変換
         message = message.replace(/>>(\d+)/g, `<a href="#post-$1">>>$1</a>`);
 
-        const post = { name, message, timestamp };
-
-        // ローカルストレージに保存
-        const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
-        savedPosts.unshift(post); // 新しい投稿を先頭に追加
-        localStorage.setItem("posts", JSON.stringify(savedPosts));
-
-        // 投稿を画面に表示
-        loadPosts();
-
-        document.getElementById("postForm").reset();
-    }
-
-    function loadPosts() {
-        const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
-        const posts = document.getElementById("posts");
-        posts.innerHTML = ""; // 既存の投稿をクリア
-
-        // 各投稿に番号を付けて表示
-        savedPosts.forEach((post, index) => {
-            displayPost(post, savedPosts.length - index);
+        // Firestoreに投稿を保存
+        db.collection("posts").add({
+            name: name,
+            message: message,
+            timestamp: timestamp
+        })
+        .then(() => {
+            loadPosts(); // 投稿後に更新
+            document.getElementById("postForm").reset();
+        })
+        .catch((error) => {
+            alert("エラーが発生しました: " + error);
         });
     }
 
+    // 投稿をFirestoreから読み込む
+    function loadPosts() {
+        const posts = document.getElementById("posts");
+        posts.innerHTML = ""; // 既存の投稿をクリア
+
+        // Firestoreからデータを取得して表示
+        db.collection("posts").orderBy("timestamp", "desc").get()
+            .then((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    const post = doc.data();
+                    const postNumber = doc.id; // FirestoreのドキュメントIDを投稿番号として使用
+                    displayPost(post, postNumber);
+                });
+            })
+            .catch((error) => {
+                alert("エラーが発生しました: " + error);
+            });
+    }
+
+    // 投稿を画面に表示
     function displayPost(post, postNumber) {
         const postContainer = document.createElement("div");
         postContainer.classList.add("post");
@@ -138,7 +154,7 @@
         postNumberElement.classList.add("post-number");
         postNumberElement.textContent = postNumber;
 
-        const contentContainer = document.createElement("div"); // 内容のコンテナ
+        const contentContainer = document.createElement("div");
 
         const nameElement = document.createElement("div");
         nameElement.classList.add("name");
@@ -161,16 +177,6 @@
 
         const posts = document.getElementById("posts");
         posts.appendChild(postContainer);
-    }
-
-    function deletePost(postNumber) {
-        // ローカルストレージから投稿を取得して、削除対象の投稿を除去
-        let savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
-        savedPosts = savedPosts.filter((post, index) => savedPosts.length - index !== postNumber);
-        localStorage.setItem("posts", JSON.stringify(savedPosts));
-
-        // 画面を再読み込み
-        loadPosts();
     }
 </script>
 
