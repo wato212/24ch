@@ -69,13 +69,12 @@
 <script>
     // ページ読み込み時にローカルストレージから投稿を読み込む
     document.addEventListener("DOMContentLoaded", () => {
-        const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
-        const posts = document.getElementById("posts");
+        loadPosts();
+    });
 
-        // 各投稿に番号を付けて表示
-        savedPosts.forEach((post, index) => {
-            displayPost(post, savedPosts.length - index);
-        });
+    // 他のタブやウィンドウでのローカルストレージの変更を監視し、反映
+    window.addEventListener("storage", () => {
+        loadPosts();
     });
 
     function postMessage() {
@@ -110,9 +109,20 @@
         localStorage.setItem("posts", JSON.stringify(savedPosts));
 
         // 投稿を画面に表示
-        displayPost(post, savedPosts.length);
+        loadPosts();
 
         document.getElementById("postForm").reset();
+    }
+
+    function loadPosts() {
+        const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
+        const posts = document.getElementById("posts");
+        posts.innerHTML = ""; // 既存の投稿をクリア
+
+        // 各投稿に番号を付けて表示
+        savedPosts.forEach((post, index) => {
+            displayPost(post, savedPosts.length - index);
+        });
     }
 
     function displayPost(post, postNumber) {
@@ -142,7 +152,7 @@
         postContainer.appendChild(timestampElement);
 
         const posts = document.getElementById("posts");
-        posts.insertBefore(postContainer, posts.firstChild);
+        posts.appendChild(postContainer);
     }
 
     function deletePost(postNumber) {
@@ -151,11 +161,8 @@
         savedPosts = savedPosts.filter((post, index) => savedPosts.length - index !== postNumber);
         localStorage.setItem("posts", JSON.stringify(savedPosts));
 
-        // 画面から投稿を削除
-        const postToDelete = document.getElementById(`post-${postNumber}`);
-        if (postToDelete) {
-            postToDelete.remove();
-        }
+        // 画面を再読み込み
+        loadPosts();
     }
 </script>
 
