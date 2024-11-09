@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>24ch</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f7f7;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .post {
+            border-bottom: 1px solid #ddd;
+            padding: 10px 0;
+            position: relative;
+        }
+        .post:last-child {
+            border-bottom: none;
+        }
+        .post .post-number {
+            position: absolute;
+            left: -30px;
+            font-weight: bold;
+            color: #555;
+        }
+        .post .name {
+            font-weight: bold;
+            color: green;
+        }
+        .post .message {
+            margin: 5px 0;
+        }
+        .post .timestamp {
+            font-size: 0.9em;
+            color: #888;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>24ch</h2>
+    <form id="postForm">
+        <label for="name">名前:</label>
+        <input type="text" id="name" placeholder="名無し"><br><br>
+
+        <label for="message">メッセージ:</label><br>
+        <textarea id="message" rows="4" cols="50" placeholder="ここにメッセージを入力してください"></textarea><br><br>
+
+        <button type="button" onclick="postMessage()">送信</button>
+    </form>
+
+    <h3>投稿一覧</h3>
+    <div id="posts">
+        <!-- 投稿がここに表示されます -->
+    </div>
+</div>
+
+<script>
+    // ページ読み込み時にローカルストレージから投稿を読み込む
+    document.addEventListener("DOMContentLoaded", () => {
+        const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
+        const posts = document.getElementById("posts");
+
+        // 各投稿に番号を付けて表示
+        savedPosts.forEach((post, index) => {
+            displayPost(post, savedPosts.length - index);
+        });
+    });
+
+    function postMessage() {
+        const name = document.getElementById("name").value || "名無し";
+        let message = document.getElementById("message").value;
+
+        if (message.trim() === "") {
+            alert("メッセージを入力してください。");
+            return;
+        }
+
+        // 現在時刻を取得してフォーマット
+        const timestamp = new Date().toLocaleString();
+
+        // メッセージ内の「>>番号」をリンクに変換
+        message = message.replace(/>>(\d+)/g, `<a href="#post-$1">>>$1</a>`);
+
+        const post = { name, message, timestamp };
+
+        // ローカルストレージに保存
+        const savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
+        savedPosts.unshift(post); // 新しい投稿を先頭に追加
+        localStorage.setItem("posts", JSON.stringify(savedPosts));
+
+        // 投稿を画面に表示
+        displayPost(post, savedPosts.length);
+
+        document.getElementById("postForm").reset();
+    }
+
+    function displayPost(post, postNumber) {
+        const postContainer = document.createElement("div");
+        postContainer.classList.add("post");
+        postContainer.id = `post-${postNumber}`;
+
+        const postNumberElement = document.createElement("div");
+        postNumberElement.classList.add("post-number");
+        postNumberElement.textContent = postNumber;
+
+        const nameElement = document.createElement("div");
+        nameElement.classList.add("name");
+        nameElement.textContent = post.name;
+
+        const messageElement = document.createElement("div");
+        messageElement.classList.add("message");
+        messageElement.innerHTML = post.message;
+
+        const timestampElement = document.createElement("div");
+        timestampElement.classList.add("timestamp");
+        timestampElement.textContent = post.timestamp;
+
+        postContainer.appendChild(postNumberElement);
+        postContainer.appendChild(nameElement);
+        postContainer.appendChild(messageElement);
+        postContainer.appendChild(timestampElement);
+
+        const posts = document.getElementById("posts");
+        posts.insertBefore(postContainer, posts.firstChild);
+    }
+</script>
+
+</body>
+</html>
