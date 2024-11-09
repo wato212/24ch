@@ -87,6 +87,15 @@
             return;
         }
 
+        // 「>>番号 #delete」形式の削除コマンドが含まれるかチェック
+        const deleteMatch = message.match(/>>(\d+)\s+#delete/);
+        if (deleteMatch) {
+            const postNumberToDelete = parseInt(deleteMatch[1]);
+            deletePost(postNumberToDelete);
+            document.getElementById("postForm").reset();
+            return; // メッセージ送信をせずに終了
+        }
+
         // 現在時刻を取得してフォーマット
         const timestamp = new Date().toLocaleString();
 
@@ -134,6 +143,19 @@
 
         const posts = document.getElementById("posts");
         posts.insertBefore(postContainer, posts.firstChild);
+    }
+
+    function deletePost(postNumber) {
+        // ローカルストレージから投稿を取得して、削除対象の投稿を除去
+        let savedPosts = JSON.parse(localStorage.getItem("posts")) || [];
+        savedPosts = savedPosts.filter((post, index) => savedPosts.length - index !== postNumber);
+        localStorage.setItem("posts", JSON.stringify(savedPosts));
+
+        // 画面から投稿を削除
+        const postToDelete = document.getElementById(`post-${postNumber}`);
+        if (postToDelete) {
+            postToDelete.remove();
+        }
     }
 </script>
 
