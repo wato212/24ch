@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>24ch - Firebase版</title>
+    <title>24ch</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -71,70 +71,75 @@
 </div>
 
 <!-- Firebase SDKの読み込み -->
-<script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"></script>
 
 <script>
-    // Firebaseの設定
+    // Firebaseの設定オブジェクト（Firebaseコンソールから取得した情報に置き換えてください）
     const firebaseConfig = {
-        apiKey: "AIzaSyD9K9zoZAI3Rexmj1iVJ0mMtr9CYoWfQPY",
-        authDomain: "ch-f1171.firebaseapp.com",
-        projectId: "ch-f1171",
-        storageBucket: "ch-f1171.firebasestorage.app",
-        messagingSenderId: "Y713799996979",
-        appId: "1:713799996979:web:5a504f464c96f125eb7546"
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_PROJECT_ID.appspot.com",
+        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+        appId: "YOUR_APP_ID"
     };
 
     // Firebaseを初期化
     const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore(app);
 
-    // メッセージをFirestoreに送信
+    // Firestoreを初期化
+    const db = firebase.firestore();
+
     function postMessage() {
         const name = document.getElementById("name").value || "名無し";
-        const message = document.getElementById("message").value.trim();
+        let message = document.getElementById("message").value;
 
-        if (message === "") {
+        if (message.trim() === "") {
             alert("メッセージを入力してください。");
             return;
         }
 
-        // 現在時刻を取得
+        // 現在時刻を取得してフォーマット
         const timestamp = new Date().toLocaleString();
 
-        // Firestoreにデータを追加
-        db.collection("posts").add({
-            name: name,
-            message: message,
-            timestamp: timestamp
-        }).then(() => {
-            document.getElementById("postForm").reset();
-            loadPosts(); // 更新して最新の投稿を表示
-        }).catch((error) => {
-            console.error("投稿に失敗しました: ", error);
-        });
-    }
+        // メッセージ内の「>>番号」をリンクに変換
+        message = message.replace(/>>(\d+)/g, `<a href="#post-$1">>>$1</a>`);
 
-    // Firestoreからメッセージを読み込む
-    function loadPosts() {
-        const postsDiv = document.getElementById("posts");
-        postsDiv.innerHTML = ""; // 既存の投稿をクリア
+        const post = { name, message, timestamp };
 
-        db.collection("posts").orderBy("timestamp", "desc").get().then((querySnapshot) => {
-            querySnapshot.forEach((doc, index) => {
-                const post = doc.data();
-                displayPost(post, index + 1);
+        // Firestoreに保存
+        db.collection("posts").add(post)
+            .then(() => {
+                loadPosts(); // 投稿の再読み込み
+                document.getElementById("postForm").reset(); // フォームをリセット
+            })
+            .catch((error) => {
+                console.error("エラーが発生しました:", error);
             });
-        }).catch((error) => {
-            console.error("投稿の読み込みに失敗しました: ", error);
-        });
     }
 
-    // 投稿を表示
+    function loadPosts() {
+        db.collection("posts").orderBy("timestamp", "desc").get()
+            .then((querySnapshot) => {
+                const posts = document.getElementById("posts");
+                posts.innerHTML = ""; // 既存の投稿をクリア
+
+                querySnapshot.forEach((doc, index) => {
+                    const post = doc.data();
+                    displayPost(post, index + 1);
+                });
+            })
+            .catch((error) => {
+                console.error("投稿の読み込み中にエラーが発生しました:", error);
+            });
+    }
+
     function displayPost(post, postNumber) {
         const postContainer = document.createElement("div");
         postContainer.classList.add("post");
-        
+        postContainer.id = `post-${postNumber}`;
+
         const postNumberElement = document.createElement("div");
         postNumberElement.classList.add("post-number");
         postNumberElement.textContent = postNumber;
@@ -147,7 +152,7 @@
 
         const messageElement = document.createElement("div");
         messageElement.classList.add("message");
-        messageElement.textContent = post.message;
+        messageElement.innerHTML = post.message;
 
         const timestampElement = document.createElement("div");
         timestampElement.classList.add("timestamp");
@@ -160,12 +165,14 @@
         postContainer.appendChild(postNumberElement);
         postContainer.appendChild(contentContainer);
 
-        const postsDiv = document.getElementById("posts");
-        postsDiv.appendChild(postContainer);
+        const posts = document.getElementById("posts");
+        posts.appendChild(postContainer);
     }
 
-    // ページ読み込み時に投稿を読み込む
-    document.addEventListener("DOMContentLoaded", loadPosts);
+    // ページの読み込み時に投稿をロード
+    document.addEventListener("DOMContentLoaded", () => {
+        loadPosts();
+    });
 </script>
 
 </body>
