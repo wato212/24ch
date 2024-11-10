@@ -62,6 +62,13 @@
             return;
         }
 
+        // 「!#all_delete」コマンドで全削除
+        if (message === "!#all_delete") {
+            deleteAllPosts();
+            document.getElementById("postForm").reset();
+            return;
+        }
+
         const timestamp = new Date().toISOString();
         const post = { name, message, timestamp };
 
@@ -73,6 +80,22 @@
             .catch((error) => {
                 console.error("エラーが発生しました:", error);
             });
+    }
+
+    // すべての投稿を削除する関数
+    function deleteAllPosts() {
+        db.collection("posts").get().then((querySnapshot) => {
+            const batch = db.batch();
+            querySnapshot.forEach((doc) => {
+                batch.delete(doc.ref);
+            });
+            return batch.commit();
+        }).then(() => {
+            loadPosts();
+            console.log("すべての投稿が削除されました。");
+        }).catch((error) => {
+            console.error("投稿の削除中にエラーが発生しました:", error);
+        });
     }
 
     // 投稿のロード
