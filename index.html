@@ -10,10 +10,13 @@
         .post { display: flex; align-items: flex-start; border-bottom: 1px solid #ddd; padding: 10px 0; position: relative; }
         .post:last-child { border-bottom: none; }
         .post .post-number { margin-right: 10px; font-weight: bold; color: #555; min-width: 30px; text-align: right; }
-        .post .name { font-weight: bold; color: green; }
+        .post .name { font-weight: bold; color: green; cursor: pointer; }
         .post .message { margin: 5px 0; }
         .post .timestamp { font-size: 0.9em; color: #888; margin-top: 5px; }
         a.post-link { color: blue; text-decoration: underline; cursor: pointer; }
+        .popup { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 20px; background-color: white; border: 1px solid #ccc; box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); z-index: 1000; }
+        .popup-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 999; }
+        .popup-close { cursor: pointer; padding: 5px; background-color: #ddd; border: none; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -23,15 +26,27 @@
     <p>ようこそ！24chへ！！</p>
     <form id="postForm">
         <label for="name">名前:</label>
-        <input type="text" id="name" placeholder="名無し"><br><br>
+        <input type="text" id="name" placeholder="名無し" required><br><br>
+        
+        <label for="email">メールアドレス:</label>
+        <input type="email" id="email" placeholder="example@gmail.com" required><br><br>
+
         <label for="message">メッセージ:</label><br>
-        <textarea id="message" rows="4" cols="50" placeholder="ここにメッセージを入力してください"></textarea><br><br>
+        <textarea id="message" rows="4" cols="50" placeholder="ここにメッセージを入力してください" required></textarea><br><br>
+        
         <button type="button" onclick="postMessage()">送信</button>
     </form>
     <h3>投稿一覧</h3>
     <div id="posts">
         <!-- 投稿がここに表示されます -->
     </div>
+</div>
+
+<!-- メールアドレスのポップアップ -->
+<div class="popup-overlay" id="popupOverlay"></div>
+<div class="popup" id="popup">
+    <p id="popupEmail">メールアドレス:</p>
+    <button class="popup-close" onclick="closePopup()">閉じる</button>
 </div>
 
 <!-- Firebase SDKの読み込み -->
@@ -51,25 +66,40 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
+    // ページが読み込まれたときに名前とメールアドレスをローカルストレージから読み込む
+    document.addEventListener("DOMContentLoaded", () => {
+        const savedName = localStorage.getItem("name");
+        const savedEmail = localStorage.getItem("email");
+        
+        if (savedName) document.getElementById("name").value = savedName;
+        if (savedEmail) document.getElementById("email").value = savedEmail;
+
+        loadPosts();
+    });
+
     function postMessage() {
-        const name = document.getElementById("name").value || "名無し";
+        const name = document.getElementById("name").value.trim();
+        const email = document.getElementById("email").value.trim();
         let message = document.getElementById("message").value.trim();
 
-        if (message === "") {
-            alert("メッセージを入力してください。");
+        if (!name || !email || !message) {
+            alert("名前、メールアドレス、メッセージをすべて入力してください。");
             return;
         }
 
-        const deleteMatch = message.match(/>>(\d+)\s+#delete/);
-        if (deleteMatch) {
-            const postNumberToDelete = parseInt(deleteMatch[1]);
-            deletePost(postNumberToDelete);
-            document.getElementById("postForm").reset();
+        // メールアドレスがGmailか確認
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+        if (!emailRegex.test(email)) {
+            alert("メールアドレスはGmailのみ使用できます。");
             return;
         }
+
+        // 名前とメールアドレスをローカルストレージに保存
+        localStorage.setItem("name", name);
+        localStorage.setItem("email", email);
 
         const timestamp = new Date().toISOString();
-        const post = { name, message, timestamp };
+        const post = { name, email, message, timestamp };
 
         db.collection("posts").add(post)
             .then(() => {
@@ -79,29 +109,6 @@
             .catch((error) => {
                 console.error("エラーが発生しました:", error);
             });
-    }
-
-    function deletePost(postNumber) {
-        db.collection("posts").orderBy("timestamp", "asc").get().then((querySnapshot) => {
-            const postsArray = [];
-            querySnapshot.forEach((doc) => {
-                postsArray.push({ id: doc.id, ...doc.data() });
-            });
-
-            const postToDelete = postsArray[postNumber - 1];
-            if (postToDelete) {
-                db.collection("posts").doc(postToDelete.id).delete()
-                    .then(() => {
-                        loadPosts();
-                        console.log("投稿が削除されました。");
-                    })
-                    .catch((error) => {
-                        console.error("投稿の削除中にエラーが発生しました:", error);
-                    });
-            } else {
-                console.log("指定された投稿が見つかりません。");
-            }
-        });
     }
 
     function loadPosts() {
@@ -137,6 +144,7 @@
         const nameElement = document.createElement("div");
         nameElement.classList.add("name");
         nameElement.textContent = post.name;
+        nameElement.onclick = () => showEmailPopup(post.email); // 名前をクリックでメール表示
 
         const messageElement = document.createElement("div");
         messageElement.classList.add("message");
@@ -162,9 +170,16 @@
         });
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-        loadPosts();
-    });
+    function showEmailPopup(email) {
+        document.getElementById("popupEmail").textContent = `メールアドレス: ${email}`;
+        document.getElementById("popup").style.display = "block";
+        document.getElementById("popupOverlay").style.display = "block";
+    }
+
+    function closePopup() {
+        document.getElementById("popup").style.display = "none";
+        document.getElementById("popupOverlay").style.display = "none";
+    }
 </script>
 
 </body>
