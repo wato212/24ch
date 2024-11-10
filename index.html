@@ -33,39 +33,27 @@
     </div>
 </div>
 
-<!-- Firebase SDKの読み込み -->
-<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"></script>
+<!-- Firebase SDKの読み込み（従来の形式） -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
 <script>
     // Firebaseの設定オブジェクト（Firebaseコンソールから取得した情報に置き換えてください）
     const firebaseConfig = {
         apiKey: "AIzaSyD9K9zoZAI3Rexmj1iVJ0mMtr9CYoWfQPY",
         authDomain: "ch-f1171.firebaseapp.com",
-        projectId: "Ych-f1171",
+        projectId: "ch-f1171",
         storageBucket: "ch-f1171.firebasestorage.app",
         messagingSenderId: "713799996979",
         appId: "1:713799996979:web:5a504f464c96f125eb7546"
     };
 
     // Firebaseを初期化
-    const app = firebase.initializeApp(firebaseConfig);
-
-    // Firestoreの初期化を行い、dbを定義
-    let db;
-    try {
-        db = firebase.firestore();
-    } catch (error) {
-        console.error("Firestoreの初期化に失敗しました:", error);
-    }
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
     // メッセージの投稿
     function postMessage() {
-        if (!db) {
-            console.error("Firestoreが初期化されていません");
-            return;
-        }
-
         const name = document.getElementById("name").value || "名無し";
         const message = document.getElementById("message").value.trim();
 
@@ -89,11 +77,6 @@
 
     // 投稿のロード
     function loadPosts() {
-        if (!db) {
-            console.error("Firestoreが初期化されていません");
-            return;
-        }
-
         db.collection("posts").orderBy("timestamp", "desc").get()
             .then((querySnapshot) => {
                 const posts = document.getElementById("posts");
