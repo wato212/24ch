@@ -98,10 +98,17 @@
 
         // メッセージに削除命令が含まれている場合
         const deletePattern = /^!#>>(\d+)_delete$/;
-        const match = message.match(deletePattern);
-        if (match) {
-            const postNumber = match[1];
-            deletePost(postNumber); // 対象の投稿を削除
+        const deleteAllPattern = /^!#all_delete$/;
+        const matchDelete = message.match(deletePattern);
+        const matchAllDelete = message.match(deleteAllPattern);
+
+        if (matchAllDelete) {
+            deleteAllPosts(); // すべての投稿を削除
+            document.getElementById("postForm").reset();
+            return;
+        } else if (matchDelete) {
+            const postNumber = matchDelete[1];
+            deletePost(postNumber); // 指定の投稿を削除
             document.getElementById("postForm").reset();
             return;
         }
@@ -191,26 +198,44 @@
     }
 
     function deletePost(postNumber) {
-        db.collection("posts").get()
+        db.collection("posts").where("message", "==", `!#>>${postNumber}_delete`).get()
             .then((querySnapshot) => {
                 querySnapshot.forEach((doc) => {
-                    const post = doc.data();
-                    if (doc.id === postNumber) { // doc.id で削除対象を特定
-                        db.collection("posts").doc(doc.id).delete()
-                            .then(() => {
-                                alert(`投稿番号 ${postNumber} が削除されました`);
-                                loadPosts();
-                            })
-                            .catch((error) => {
-                                console.error("投稿の削除中にエラーが発生しました:", error);
-                            });
-                    }
+                    doc.ref.delete()
+                        .then(() => {
+                            console.log(`投稿番号 ${postNumber} が削除されました`);
+                            loadPosts();
+                        })
+                        .catch((error) => {
+                            console.error("投稿の削除中にエラーが発生しました:", error);
+                        });
                 });
             })
             .catch((error) => {
-                console.error("投稿の読み込み中にエラーが発生しました:", error);
+                console.error("投稿の検索中にエラーが発生しました:", error);
+            });
+    }
+
+    function deleteAllPosts() {
+        db.collection("posts").get()
+            .then((querySnapshot) => {
+                const batch = db.batch();
+
+                querySnapshot.forEach((doc) => {
+                    batch.delete(doc.ref);
+                });
+
+                return batch.commit();
+            })
+            .then(() => {
+                console.log("すべての投稿が削除されました");
+                loadPosts();
+            })
+            .catch((error) => {
+                console.error("すべての投稿の削除中にエラーが発生しました:", error);
             });
     }
 </script>
+
 </body>
 </html>
