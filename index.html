@@ -5,49 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>24ch</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f7f7f7;
-            padding: 20px;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-        .post {
-            display: flex;
-            align-items: flex-start;
-            border-bottom: 1px solid #ddd;
-            padding: 10px 0;
-            position: relative;
-        }
-        .post:last-child {
-            border-bottom: none;
-        }
-        .post .post-number {
-            margin-right: 10px;
-            font-weight: bold;
-            color: #555;
-            min-width: 30px;
-            text-align: right;
-        }
-        .post .name {
-            font-weight: bold;
-            color: green;
-            cursor: pointer;
-        }
-        .post .message {
-            margin: 5px 0;
-        }
-        .post .timestamp {
-            font-size: 0.9em;
-            color: #888;
-            margin-top: 5px;
-        }
+        /* スタイル定義 */
+        body { font-family: Arial, sans-serif; background-color: #f7f7f7; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); }
+        .post { display: flex; align-items: flex-start; border-bottom: 1px solid #ddd; padding: 10px 0; position: relative; }
+        .post:last-child { border-bottom: none; }
+        .post .post-number { margin-right: 10px; font-weight: bold; color: #555; min-width: 30px; text-align: right; }
+        .post .name { font-weight: bold; color: green; cursor: pointer; }
+        .post .message { margin: 5px 0; }
+        .post .timestamp { font-size: 0.9em; color: #888; margin-top: 5px; }
+        .popup { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 20px; background-color: white; border: 1px solid #ccc; box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); z-index: 1000; }
+        .popup-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 999; }
+        .popup-close { cursor: pointer; padding: 5px; background-color: #ddd; border: none; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -57,28 +26,33 @@
     <p>ようこそ！24chへ！！</p>
     <form id="postForm">
         <label for="name">名前:</label>
-        <input type="text" id="name" placeholder="名無し" autocomplete="on"><br><br>
+        <input type="text" id="name" placeholder="名無し"><br><br>
         
         <label for="email">メールアドレス:</label>
-        <input type="email" id="email" placeholder="example@gmail.com" autocomplete="on"><br><br>
+        <input type="email" id="email" placeholder="example@gmail.com"><br><br>
 
         <label for="message">メッセージ:</label><br>
-        <textarea id="message" rows="4" cols="50" placeholder="ここにメッセージを入力してください" autocomplete="off"></textarea><br><br>
+        <textarea id="message" rows="4" cols="50" placeholder="ここにメッセージを入力してください"></textarea><br><br>
         
         <button type="button" onclick="postMessage()">送信</button>
     </form>
-
     <h3>投稿一覧</h3>
     <div id="posts">
         <!-- 投稿がここに表示されます -->
     </div>
 </div>
 
-<!-- Firebaseのライブラリ -->
-<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js"></script>
+<div class="popup-overlay" id="popupOverlay"></div>
+<div class="popup" id="popup">
+    <p id="popupEmail">メールアドレス:</p>
+    <button class="popup-close" onclick="closePopup()">閉じる</button>
+</div>
+
+<!-- Firebase SDKの読み込み -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
 <script>
-    // Firebaseの設定
     const firebaseConfig = {
         apiKey: "AIzaSyD9K9zoZAI3Rexmj1iVJ0mMtr9CYoWfQPY",
         authDomain: "ch-f1171.firebaseapp.com",
@@ -88,130 +62,147 @@
         appId: "1:713799996979:web:5a504f464c96f125eb7546"
     };
 
-    // Firebase初期化
-    const app = firebase.initializeApp(firebaseConfig);
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // 端末情報を取得する関数
-    function getDeviceInfo() {
-        const userAgent = navigator.userAgent;
-        const platform = navigator.platform;
-        const screenSize = `${window.screen.width}x${window.screen.height}`;
-        return { userAgent, platform, screenSize };
-    }
+    document.addEventListener("DOMContentLoaded", () => {
+        // ローカルストレージから名前とメールを読み込む
+        const savedName = localStorage.getItem("name");
+        const savedEmail = localStorage.getItem("email");
 
-    // 投稿を保存する関数
+        if (savedName) document.getElementById("name").value = savedName;
+        if (savedEmail) document.getElementById("email").value = savedEmail;
+
+        loadPosts();
+    });
+
     function postMessage() {
-        const name = document.getElementById("name").value || "名無し";
-        const email = document.getElementById("email").value;
-        let message = document.getElementById("message").value;
+        const name = document.getElementById("name").value.trim() || "名無し";
+        const email = document.getElementById("email").value.trim();
+        let message = document.getElementById("message").value.trim();
 
-        if (!email.endsWith("@gmail.com")) {
-            alert("メールアドレスはGmailのみです。");
-            return;
-        }
-        if (message.trim() === "") {
-            alert("メッセージを入力してください。");
+        if (!email) {
+            alert("メールアドレスを入力してください。");
             return;
         }
 
-        // 「!#all_delete」コマンドの場合、全ての投稿を削除
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+        if (!emailRegex.test(email)) {
+            alert("メールアドレスはGmailのみ使用できます。");
+            return;
+        }
+
+        // ローカルストレージに名前とメールアドレスを保存
+        localStorage.setItem("name", name);
+        localStorage.setItem("email", email);
+
         if (message === "!#all_delete") {
             deleteAllPosts();
             document.getElementById("postForm").reset();
             return;
         }
 
-        // 「>>レス番号 #delete」コマンドの場合、指定のレスを削除
-        const deleteMatch = message.match(/>>(\d+)\s+#delete/);
-        if (deleteMatch) {
-            const postNumberToDelete = parseInt(deleteMatch[1]);
-            deletePost(postNumberToDelete);
-            document.getElementById("postForm").reset();
-            return;
-        }
+        const timestamp = new Date().toISOString();
+        const post = { name, email, message, timestamp };
 
-        const timestamp = new Date().toLocaleString();
-        const deviceInfo = getDeviceInfo();
-
-        const post = { name, email, message, timestamp, deviceInfo };
-
-        // Firestore に保存
-        db.collection("posts").add(post).then(() => {
-            loadPosts();
-        });
-
-        document.getElementById("postForm").reset();
-    }
-
-    // 投稿をロードして表示する関数
-    function loadPosts() {
-        db.collection("posts").orderBy("timestamp").get().then((querySnapshot) => {
-            const posts = document.getElementById("posts");
-            posts.innerHTML = "";
-
-            querySnapshot.forEach((doc) => {
-                const postData = doc.data();
-                postData.id = doc.id; // 投稿IDを追加
-                displayPost(postData);
+        db.collection("posts").add(post)
+            .then(() => {
+                loadPosts();
+                document.getElementById("postForm").reset();
+            })
+            .catch((error) => {
+                console.error("エラーが発生しました:", error);
             });
-        });
     }
 
-    // 投稿を表示する関数
-    function displayPost(postData) {
+    function loadPosts() {
+        db.collection("posts").orderBy("timestamp", "asc").get()
+            .then((querySnapshot) => {
+                const posts = document.getElementById("posts");
+                posts.innerHTML = "";
+
+                let postNumber = 1;
+
+                querySnapshot.forEach((doc) => {
+                    const post = doc.data();
+                    displayPost(post, postNumber, doc.id);
+                    postNumber++;
+                });
+            })
+            .catch((error) => {
+                console.error("投稿の読み込み中にエラーが発生しました:", error);
+            });
+    }
+
+    function displayPost(post, postNumber, docId) {
         const postContainer = document.createElement("div");
         postContainer.classList.add("post");
+        postContainer.id = `post-${postNumber}`;
+
+        const postNumberElement = document.createElement("div");
+        postNumberElement.classList.add("post-number");
+        postNumberElement.textContent = postNumber;
+
+        const contentContainer = document.createElement("div");
 
         const nameElement = document.createElement("div");
         nameElement.classList.add("name");
-        nameElement.textContent = postData.name;
-
-        nameElement.addEventListener("click", () => {
-            const deviceInfo = postData.deviceInfo;
-            alert(`端末情報:\nブラウザ: ${deviceInfo.userAgent}\nOS: ${deviceInfo.platform}\n画面サイズ: ${deviceInfo.screenSize}`);
-        });
+        nameElement.textContent = post.name;
+        nameElement.onclick = () => showEmailPopup(post.email);
 
         const messageElement = document.createElement("div");
         messageElement.classList.add("message");
-        messageElement.innerHTML = postData.message.replace(/>>(\d+)/g, `<a href="#post-$1">>>$1</a>`);
+        messageElement.innerHTML = linkifyMessage(post.message);
 
         const timestampElement = document.createElement("div");
         timestampElement.classList.add("timestamp");
-        timestampElement.textContent = postData.timestamp;
+        timestampElement.textContent = new Date(post.timestamp).toLocaleString();
 
-        postContainer.appendChild(nameElement);
-        postContainer.appendChild(messageElement);
-        postContainer.appendChild(timestampElement);
+        contentContainer.appendChild(nameElement);
+        contentContainer.appendChild(messageElement);
+        contentContainer.appendChild(timestampElement);
+
+        postContainer.appendChild(postNumberElement);
+        postContainer.appendChild(contentContainer);
 
         document.getElementById("posts").appendChild(postContainer);
     }
 
-    // 特定の投稿を削除する関数
-    function deletePost(postNumber) {
-        db.collection("posts").orderBy("timestamp").get().then((querySnapshot) => {
-            const postDoc = querySnapshot.docs[postNumber - 1];
-            if (postDoc) {
-                db.collection("posts").doc(postDoc.id).delete().then(() => {
-                    loadPosts();
-                });
-            }
+    function linkifyMessage(message) {
+        return message.replace(/>>(\d+)/g, (match, postNumber) => {
+            return `<a href="#post-${postNumber}" class="post-link">>>${postNumber}</a>`;
         });
     }
 
-    // 全ての投稿を削除する関数
+    function showEmailPopup(email) {
+        document.getElementById("popupEmail").textContent = `メールアドレス: ${email}`;
+        document.getElementById("popup").style.display = "block";
+        document.getElementById("popupOverlay").style.display = "block";
+    }
+
+    function closePopup() {
+        document.getElementById("popup").style.display = "none";
+        document.getElementById("popupOverlay").style.display = "none";
+    }
+
     function deleteAllPosts() {
-        db.collection("posts").get().then((querySnapshot) => {
-            querySnapshot.forEach((doc) => {
-                db.collection("posts").doc(doc.id).delete();
-            });
-        }).then(() => {
-            loadPosts();
-        });
-    }
+        db.collection("posts").get()
+            .then((querySnapshot) => {
+                const batch = db.batch();
 
-    // ページ読み込み時に投稿をロード
-    document.addEventListener("DOMContentLoaded", loadPosts);
+                querySnapshot.forEach((doc) => {
+                    batch.delete(doc.ref);
+                });
+
+                return batch.commit();
+            })
+            .then(() => {
+                loadPosts();
+            })
+            .catch((error) => {
+                console.error("すべての投稿の削除中にエラーが発生しました:", error);
+            });
+    }
 </script>
 
 </body>
