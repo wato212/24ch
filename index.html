@@ -125,13 +125,16 @@
 function showEmailPopup(email) {
     // 権限を持っているか確認
     const authorizedEmail = localStorage.getItem("canViewEmail");
+    const popupContent = document.getElementById("popupEmail");
+
     if (authorizedEmail === email) {
-        document.getElementById("popupEmail").textContent = `メールアドレス: ${email}`;
-        document.getElementById("popup").style.display = "block";
-        document.getElementById("popupOverlay").style.display = "block";
+        popupContent.textContent = `メールアドレス: ${email}`;
     } else {
-        alert("このメールアドレスを見る権限がありません。");
+        popupContent.textContent = "このメールアドレスを見る権限がありません。";
     }
+    
+    document.getElementById("popup").style.display = "block";
+    document.getElementById("popupOverlay").style.display = "block";
 }
 
 
