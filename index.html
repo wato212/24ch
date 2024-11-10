@@ -62,7 +62,7 @@
             return;
         }
 
-        const timestamp = new Date().toLocaleString();
+        const timestamp = new Date().toISOString();
         const post = { name, message, timestamp };
 
         db.collection("posts").add(post)
@@ -82,9 +82,12 @@
                 const posts = document.getElementById("posts");
                 posts.innerHTML = "";
 
-                querySnapshot.forEach((doc, index) => {
+                let postNumber = 1; // レス番号の初期値
+
+                querySnapshot.forEach((doc) => {
                     const post = doc.data();
-                    displayPost(post, index + 1);
+                    displayPost(post, postNumber); // 番号を渡す
+                    postNumber++; // 番号を増加
                 });
             })
             .catch((error) => {
@@ -113,7 +116,7 @@
 
         const timestampElement = document.createElement("div");
         timestampElement.classList.add("timestamp");
-        timestampElement.textContent = post.timestamp;
+        timestampElement.textContent = new Date(post.timestamp).toLocaleString();
 
         contentContainer.appendChild(nameElement);
         contentContainer.appendChild(messageElement);
