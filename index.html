@@ -5,48 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>24ch</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f7f7f7;
-            padding: 20px;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-        .post {
-            display: flex;
-            align-items: flex-start;
-            border-bottom: 1px solid #ddd;
-            padding: 10px 0;
-            position: relative;
-        }
-        .post:last-child {
-            border-bottom: none;
-        }
-        .post .post-number {
-            margin-right: 10px;
-            font-weight: bold;
-            color: #555;
-            min-width: 30px;
-            text-align: right;
-        }
-        .post .name {
-            font-weight: bold;
-            color: green;
-        }
-        .post .message {
-            margin: 5px 0;
-        }
-        .post .timestamp {
-            font-size: 0.9em;
-            color: #888;
-            margin-top: 5px;
-        }
+        body { font-family: Arial, sans-serif; background-color: #f7f7f7; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); }
+        .post { display: flex; align-items: flex-start; border-bottom: 1px solid #ddd; padding: 10px 0; position: relative; }
+        .post:last-child { border-bottom: none; }
+        .post .post-number { margin-right: 10px; font-weight: bold; color: #555; min-width: 30px; text-align: right; }
+        .post .name { font-weight: bold; color: green; }
+        .post .message { margin: 5px 0; }
+        .post .timestamp { font-size: 0.9em; color: #888; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -57,13 +23,10 @@
     <form id="postForm">
         <label for="name">名前:</label>
         <input type="text" id="name" placeholder="名無し"><br><br>
-
         <label for="message">メッセージ:</label><br>
         <textarea id="message" rows="4" cols="50" placeholder="ここにメッセージを入力してください"></textarea><br><br>
-
         <button type="button" onclick="postMessage()">送信</button>
     </form>
-
     <h3>投稿一覧</h3>
     <div id="posts">
         <!-- 投稿がここに表示されます -->
@@ -77,53 +40,64 @@
 <script>
     // Firebaseの設定オブジェクト（Firebaseコンソールから取得した情報に置き換えてください）
     const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_PROJECT_ID.appspot.com",
-        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-        appId: "YOUR_APP_ID"
+        apiKey: "AIzaSyD9K9zoZAI3Rexmj1iVJ0mMtr9CYoWfQPY",
+        authDomain: "ch-f1171.firebaseapp.com",
+        projectId: "Ych-f1171",
+        storageBucket: "ch-f1171.firebasestorage.app",
+        messagingSenderId: "713799996979",
+        appId: "1:713799996979:web:5a504f464c96f125eb7546"
     };
 
     // Firebaseを初期化
     const app = firebase.initializeApp(firebaseConfig);
 
-    // Firestoreを初期化
-    const db = firebase.firestore();
+    // Firestoreの初期化を行い、dbを定義
+    let db;
+    try {
+        db = firebase.firestore();
+    } catch (error) {
+        console.error("Firestoreの初期化に失敗しました:", error);
+    }
 
+    // メッセージの投稿
     function postMessage() {
-        const name = document.getElementById("name").value || "名無し";
-        let message = document.getElementById("message").value;
+        if (!db) {
+            console.error("Firestoreが初期化されていません");
+            return;
+        }
 
-        if (message.trim() === "") {
+        const name = document.getElementById("name").value || "名無し";
+        const message = document.getElementById("message").value.trim();
+
+        if (message === "") {
             alert("メッセージを入力してください。");
             return;
         }
 
-        // 現在時刻を取得してフォーマット
         const timestamp = new Date().toLocaleString();
-
-        // メッセージ内の「>>番号」をリンクに変換
-        message = message.replace(/>>(\d+)/g, `<a href="#post-$1">>>$1</a>`);
-
         const post = { name, message, timestamp };
 
-        // Firestoreに保存
         db.collection("posts").add(post)
             .then(() => {
-                loadPosts(); // 投稿の再読み込み
-                document.getElementById("postForm").reset(); // フォームをリセット
+                loadPosts();
+                document.getElementById("postForm").reset();
             })
             .catch((error) => {
                 console.error("エラーが発生しました:", error);
             });
     }
 
+    // 投稿のロード
     function loadPosts() {
+        if (!db) {
+            console.error("Firestoreが初期化されていません");
+            return;
+        }
+
         db.collection("posts").orderBy("timestamp", "desc").get()
             .then((querySnapshot) => {
                 const posts = document.getElementById("posts");
-                posts.innerHTML = ""; // 既存の投稿をクリア
+                posts.innerHTML = "";
 
                 querySnapshot.forEach((doc, index) => {
                     const post = doc.data();
@@ -135,6 +109,7 @@
             });
     }
 
+    // 投稿の表示
     function displayPost(post, postNumber) {
         const postContainer = document.createElement("div");
         postContainer.classList.add("post");
@@ -145,14 +120,13 @@
         postNumberElement.textContent = postNumber;
 
         const contentContainer = document.createElement("div");
-
         const nameElement = document.createElement("div");
         nameElement.classList.add("name");
         nameElement.textContent = post.name;
 
         const messageElement = document.createElement("div");
         messageElement.classList.add("message");
-        messageElement.innerHTML = post.message;
+        messageElement.textContent = post.message;
 
         const timestampElement = document.createElement("div");
         timestampElement.classList.add("timestamp");
@@ -165,8 +139,7 @@
         postContainer.appendChild(postNumberElement);
         postContainer.appendChild(contentContainer);
 
-        const posts = document.getElementById("posts");
-        posts.appendChild(postContainer);
+        document.getElementById("posts").appendChild(postContainer);
     }
 
     // ページの読み込み時に投稿をロード
