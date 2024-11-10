@@ -13,6 +13,7 @@
         .post .name { font-weight: bold; color: green; }
         .post .message { margin: 5px 0; }
         .post .timestamp { font-size: 0.9em; color: #888; margin-top: 5px; }
+        a.post-link { color: blue; text-decoration: underline; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -33,12 +34,11 @@
     </div>
 </div>
 
-<!-- Firebase SDKの読み込み（従来の形式） -->
+<!-- Firebase SDKの読み込み -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
 <script>
-    // Firebaseの設定オブジェクト（Firebaseコンソールから取得した情報に置き換えてください）
     const firebaseConfig = {
         apiKey: "AIzaSyD9K9zoZAI3Rexmj1iVJ0mMtr9CYoWfQPY",
         authDomain: "ch-f1171.firebaseapp.com",
@@ -48,23 +48,22 @@
         appId: "1:713799996979:web:5a504f464c96f125eb7546"
     };
 
-    // Firebaseを初期化
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // メッセージの投稿
     function postMessage() {
         const name = document.getElementById("name").value || "名無し";
-        const message = document.getElementById("message").value.trim();
+        let message = document.getElementById("message").value.trim();
 
         if (message === "") {
             alert("メッセージを入力してください。");
             return;
         }
 
-        // 「!#all_delete」コマンドで全削除
-        if (message === "!#all_delete") {
-            deleteAllPosts();
+        const deleteMatch = message.match(/>>(\d+)\s+#delete/);
+        if (deleteMatch) {
+            const postNumberToDelete = parseInt(deleteMatch[1]);
+            deletePost(postNumberToDelete);
             document.getElementById("postForm").reset();
             return;
         }
@@ -82,34 +81,40 @@
             });
     }
 
-    // すべての投稿を削除する関数
-    function deleteAllPosts() {
-        db.collection("posts").get().then((querySnapshot) => {
-            const batch = db.batch();
+    function deletePost(postNumber) {
+        db.collection("posts").orderBy("timestamp", "asc").get().then((querySnapshot) => {
+            const postsArray = [];
             querySnapshot.forEach((doc) => {
-                batch.delete(doc.ref);
+                postsArray.push({ id: doc.id, ...doc.data() });
             });
-            return batch.commit();
-        }).then(() => {
-            loadPosts();
-            console.log("すべての投稿が削除されました。");
-        }).catch((error) => {
-            console.error("投稿の削除中にエラーが発生しました:", error);
+
+            const postToDelete = postsArray[postNumber - 1];
+            if (postToDelete) {
+                db.collection("posts").doc(postToDelete.id).delete()
+                    .then(() => {
+                        loadPosts();
+                        console.log("投稿が削除されました。");
+                    })
+                    .catch((error) => {
+                        console.error("投稿の削除中にエラーが発生しました:", error);
+                    });
+            } else {
+                console.log("指定された投稿が見つかりません。");
+            }
         });
     }
 
-    // 投稿のロード
     function loadPosts() {
-        db.collection("posts").orderBy("timestamp", "asc").get() // 古い順に並べ替え
+        db.collection("posts").orderBy("timestamp", "asc").get()
             .then((querySnapshot) => {
                 const posts = document.getElementById("posts");
                 posts.innerHTML = "";
 
-                let postNumber = 1; // 投稿順にレス番号を設定
+                let postNumber = 1;
 
                 querySnapshot.forEach((doc) => {
                     const post = doc.data();
-                    displayPost(post, postNumber); // 順番に番号を渡す
+                    displayPost(post, postNumber);
                     postNumber++;
                 });
             })
@@ -118,7 +123,6 @@
             });
     }
 
-    // 投稿の表示
     function displayPost(post, postNumber) {
         const postContainer = document.createElement("div");
         postContainer.classList.add("post");
@@ -129,13 +133,14 @@
         postNumberElement.textContent = postNumber;
 
         const contentContainer = document.createElement("div");
+
         const nameElement = document.createElement("div");
         nameElement.classList.add("name");
         nameElement.textContent = post.name;
 
         const messageElement = document.createElement("div");
         messageElement.classList.add("message");
-        messageElement.textContent = post.message;
+        messageElement.innerHTML = linkifyMessage(post.message);
 
         const timestampElement = document.createElement("div");
         timestampElement.classList.add("timestamp");
@@ -151,7 +156,12 @@
         document.getElementById("posts").appendChild(postContainer);
     }
 
-    // ページの読み込み時に投稿をロード
+    function linkifyMessage(message) {
+        return message.replace(/>>(\d+)/g, (match, postNumber) => {
+            return `<a href="#post-${postNumber}" class="post-link">>>${postNumber}</a>`;
+        });
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
         loadPosts();
     });
