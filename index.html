@@ -19,7 +19,7 @@
 
 <div class="container">
     <h2>24ch</h2>
-    <p>ようこそ！24chへ！！<br><a href= " https://wato212.github.io/24ch-description/" >説明書はこちら！</a></p>
+    <p>ようこそ！24chへ！！</p>
     <form id="postForm">
         <label for="name">名前:</label>
         <input type="text" id="name" placeholder="名無し"><br><br>
@@ -100,17 +100,17 @@
 
     // 投稿のロード
     function loadPosts() {
-        db.collection("posts").orderBy("timestamp", "desc").get()
+        db.collection("posts").orderBy("timestamp", "asc").get() // 古い順に並べ替え
             .then((querySnapshot) => {
                 const posts = document.getElementById("posts");
                 posts.innerHTML = "";
 
-                let postNumber = 1; // レス番号の初期値
+                let postNumber = 1; // 投稿順にレス番号を設定
 
                 querySnapshot.forEach((doc) => {
                     const post = doc.data();
-                    displayPost(post, postNumber); // 番号を渡す
-                    postNumber++; // 番号を増加
+                    displayPost(post, postNumber); // 順番に番号を渡す
+                    postNumber++;
                 });
             })
             .catch((error) => {
