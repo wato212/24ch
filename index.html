@@ -77,55 +77,43 @@
     });
 
     function postMessage() {
-        const name = document.getElementById("name").value.trim() || "名無し";
-        const email = document.getElementById("email").value.trim();
-        let message = document.getElementById("message").value.trim();
+    const name = document.getElementById("name").value.trim() || "名無し";
+    const email = document.getElementById("email").value.trim();
+    let message = document.getElementById("message").value.trim();
 
-        if (!email) {
-            alert("メールアドレスを入力してください。");
-            return;
-        }
-
-        const emailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
-        if (!emailRegex.test(email)) {
-            alert("メールアドレスはGmailのみ使用できます。");
-            return;
-        }
-
-        // ローカルストレージに名前とメールアドレスを保存
-        localStorage.setItem("name", name);
-        localStorage.setItem("email", email);
-
-        // メッセージに削除命令が含まれている場合
-        const deletePattern = /^!#>>(\d+)_delete$/;
-        const deleteAllPattern = /^!#all_delete$/;
-        const matchDelete = message.match(deletePattern);
-        const matchAllDelete = message.match(deleteAllPattern);
-
-        if (matchAllDelete) {
-            deleteAllPosts(); // すべての投稿を削除
-            document.getElementById("postForm").reset();
-            return;
-        } else if (matchDelete) {
-            const postNumber = matchDelete[1];
-            deletePost(postNumber); // 指定の投稿を削除
-            document.getElementById("postForm").reset();
-            return;
-        }
-
-        // 一般的な投稿処理
-        const timestamp = new Date().toISOString();
-        const post = { name, email, message, timestamp };
-
-        db.collection("posts").add(post)
-            .then(() => {
-                loadPosts();
-                document.getElementById("postForm").reset();
-            })
-            .catch((error) => {
-                console.error("エラーが発生しました:", error);
-            });
+    if (!email) {
+        alert("メールアドレスを入力してください。");
+        return;
     }
+
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+    if (!emailRegex.test(email)) {
+        alert("メールアドレスはGmailのみ使用できます。");
+        return;
+    }
+
+    // ローカルストレージに名前とメールアドレスを保存
+    localStorage.setItem("name", name);
+    localStorage.setItem("email", email);
+
+    if (message === "!#all_delete") {
+        deleteAllPosts();
+        message = ""; // !#all_deleteの投稿内容を削除
+    }
+
+    const timestamp = new Date().toISOString();
+    const post = { name, email, message, timestamp };
+
+    db.collection("posts").add(post)
+        .then(() => {
+            loadPosts();
+            document.getElementById("message").value = ""; // メッセージのみクリア
+        })
+        .catch((error) => {
+            console.error("エラーが発生しました:", error);
+        });
+}
+
 
     function loadPosts() {
         db.collection("posts").orderBy("timestamp", "asc").get()
