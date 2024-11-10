@@ -78,7 +78,7 @@
     });
 
     function postMessage() {
-        const name = document.getElementById("name").value.trim();
+        const name = document.getElementById("name").value.trim() || "名無し";
         const email = document.getElementById("email").value.trim();
         let message = document.getElementById("message").value.trim();
 
