@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>24ch</title>
+    <title>2ow-ch</title>
     <style>
         /* スタイル定義 */
         body { font-family: Arial, sans-serif; background-color: #f7f7f7; padding: 20px; }
@@ -17,36 +17,86 @@
         .popup { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 20px; background-color: white; border: 1px solid #ccc; box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); z-index: 1000; }
         .popup-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 999; }
         .popup-close { cursor: pointer; padding: 5px; background-color: #ddd; border: none; margin-top: 10px; }
+
+        /* 利用規約ポップアップのスタイル */
+        .terms-popup { 
+            display: none; 
+            position: fixed; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            padding: 20px; 
+            background-color: white; 
+            border: 1px solid #ccc; 
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); 
+            z-index: 1000; 
+            max-width: 600px; 
+            max-height: 80vh; /* 最大高さを設定 */
+            overflow-y: auto; /* コンテンツが長くなった場合にスクロール可能 */
+        }
+        .terms-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 999; }
+        .agree-button { cursor: pointer; padding: 5px; background-color: #4CAF50; color: white; border: none; margin-top: 10px; }
+
+        #scrollToBottomButton {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            display: none; /* 初期状態では非表示 */
+        }
+
+        #scrollToBottomButton.visible {
+            display: block; /* visibleクラスが追加されたときに表示 */
+        }
+
+        .terms-button {
+            font-size: 14px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>24ch</h2>
-    <p>ようこそ！24chへ！！</p>
+    <h2>2ow-ch</h2>
+    <p>ようこそ！2ow-chへ！！</p>
+    <p>初めての方などは利用規約を読んでね！</p>
+    
+    <!-- 利用規約ボタン -->
+    <button class="terms-button" onclick="showTermsPopup()">利用規約を表示</button>
+    
+    <h3>投稿一覧</h3>
+    <div id="posts">
+        <!-- 投稿がここに表示されます -->
+    </div>
+
     <form id="postForm">
         <label for="link">名前:</label>
         <input type="text" id="name" placeholder="名無し" autocomplete="name"><br><br>
         
         <label for="email">メールアドレス:</label>
-        <input type="email" id="email" placeholder="example@gmail.com" autocomplete="email"><br><br>
+        <input type="email" id="email" placeholder="メールアドレスを入力" autocomplete="email"><br><br>
 
         <label for="message">メッセージ:</label><br>
         <textarea id="message" rows="4" cols="50" placeholder="ここにメッセージを入力してください"></textarea><br><br>
         
         <button type="button" onclick="postMessage()">送信</button>
     </form>
-    <h3>投稿一覧</h3>
-    <div id="posts">
-        <!-- 投稿がここに表示されます -->
-    </div>
 </div>
 
-<div class="popup-overlay" id="popupOverlay"></div>
-<div class="popup" id="popup">
-    <p id="popupEmail">メールアドレス:</p>
-    <button class="popup-close" onclick="closePopup()">閉じる</button>
-</div>
+<button id="scrollToBottomButton" onclick="scrollToBottom()">一番下に行く</button>
 
 <!-- Firebase SDKの読み込み -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -66,120 +116,114 @@
     const db = firebase.firestore();
 
     document.addEventListener("DOMContentLoaded", () => {
-        // ローカルストレージから名前とメールを読み込む
-        const savedName = localStorage.getItem("name");
-        const savedEmail = localStorage.getItem("email");
-
-        if (savedName) document.getElementById("name").value = savedName;
-        if (savedEmail) document.getElementById("email").value = savedEmail;
-
         loadPosts();
     });
 
+    function showTermsPopup() {
+        const overlay = document.createElement('div');
+        overlay.classList.add('terms-overlay');
+        document.body.appendChild(overlay);
+
+        const popup = document.createElement('div');
+        popup.classList.add('terms-popup');
+        popup.innerHTML = `
+            <h3>利用規約</h3>
+            <p>当サイト「2ow-ch」（以下「当サイト」といいます）を安全かつ快適にご利用いただくために、以下の規約をお読みいただき、ご同意の上でご利用ください。当サイトの製作者グループ（以下「当グループ」といいます）は、本規約に基づき、利用者の皆様が円滑にご利用いただける環境の提供を目指しています。</p>
+            <h4>第1条（トラブル発生時の責任および対応）</h4>
+            <p>当サイトの利用に関連して発生したいかなるトラブルや損害について、当グループは一切の責任を負いません。また、当サイトの利用規約に反する行為に起因する問題や、そこから生じたトラブルについても関与いたしません。利用者ご自身の責任において解決をお願いいたします。</p>
+            <h4>第2条（メールアドレスの入力について）</h4>
+            <p>当サイトでは、投稿時に利用者のメールアドレス入力を必須としています。収集したメールアドレスは、安全性の確保およびアクセス人数の集計など、当サイト運営上の必要な範囲においてのみ使用します。これらの目的以外で、利用者の同意なく個人情報を使用または第三者に提供することはありません。</p>
+            <h4>第3条（規約の変更について）</h4>
+            <p>本規約は、2024年11月11日現在の内容となりますが、当グループの判断により事前の予告なく変更される場合があります。利用者の皆様には、本規約の変更が行われる可能性を十分にご留意いただき、Cookieの削除などによって適宜ご確認いただくことを推奨いたします。本規約に同意された時点以降、本規約の表示は通常行われません。利用開始後も、最新の内容を確認するために定期的なご確認をお願い申し上げます。</p>
+            <p>附則 本規約を遵守の上、皆様に安全で快適な利用環境を提供することを目的としております。利用者の皆様には、当サイトの利用に際してご理解とご協力を賜りますようお願い申し上げます。</p>
+            <button class="agree-button" onclick="closeTermsPopup()">同意・完了</button>
+        `;
+        document.body.appendChild(popup);
+        overlay.style.display = 'block';
+        popup.style.display = 'block';
+    }
+
+    function closeTermsPopup() {
+        const overlay = document.querySelector('.terms-overlay');
+        const popup = document.querySelector('.terms-popup');
+        overlay.style.display = 'none';
+        popup.style.display = 'none';
+        overlay.remove();
+        popup.remove();
+    }
+
     function postMessage() {
-    const name = document.getElementById("name").value.trim() || "名無し";
-    const email = document.getElementById("email").value.trim();
-    let message = document.getElementById("message").value.trim();
+        const name = document.getElementById("name").value.trim() || "名無し";
+        const email = document.getElementById("email").value.trim();
+        const message = document.getElementById("message").value.trim();
 
-    if (!email) {
-        alert("メールアドレスを入力してください。");
-        return;
+        if (!email) {
+            alert("メールアドレスを入力してください。");
+            return;
+        }
+
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (!emailRegex.test(email)) {
+            alert("有効なメールアドレスを入力してください。");
+            return;
+        }
+
+    if (message) {
+        const post = {
+            name: name,
+            email: email,
+            message: message,
+            timestamp: new Date().toISOString(),
+        };
+
+        db.collection('posts').add(post)
+            .then(() => {
+                loadPosts();
+                document.getElementById('message').value = '';
+            });
     }
-
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
-    if (!emailRegex.test(email)) {
-        alert("メールアドレスはGmailのみ使用できます。");
-        return;
-    }
-
-    // ローカルストレージに名前とメールアドレスを保存
-    localStorage.setItem("name", name);
-    localStorage.setItem("email", email);
-
-    // "!#all_delete" コマンドの処理
-    if (message === "!#all_delete") {
-        deleteAllPosts();
-        message = ""; // !#all_deleteの投稿内容を削除
-    }
-    
-    // "!#email" コマンドで権限を設定
-    if (message === "!#email") {
-        localStorage.setItem("canViewEmail", email);
-        alert("メールアドレス表示権限が設定されました。");
-        message = ""; // "!#email"投稿内容を削除
-    }
-
-    const timestamp = new Date().toISOString();
-    const post = { name, email, message, timestamp };
-
-    db.collection("posts").add(post)
-        .then(() => {
-            loadPosts();
-            document.getElementById("message").value = ""; // メッセージのみクリア
-        })
-        .catch((error) => {
-            console.error("エラーが発生しました:", error);
-        });
-}
-
-function showEmailPopup(email) {
-    // 権限を持っているか確認
-    const authorizedEmail = localStorage.getItem("canViewEmail");
-    const popupContent = document.getElementById("popupEmail");
-
-    if (authorizedEmail === email) {
-        popupContent.textContent = `メールアドレス: ${email}`;
-    } else {
-        popupContent.textContent = "このメールアドレスを見る権限がありません。";
-    }
-    
-    document.getElementById("popup").style.display = "block";
-    document.getElementById("popupOverlay").style.display = "block";
 }
 
 
 
     function loadPosts() {
-        db.collection("posts").orderBy("timestamp", "asc").get()
-            .then((querySnapshot) => {
-                const posts = document.getElementById("posts");
-                posts.innerHTML = "";
-
-                let postNumber = 1;
-
-                querySnapshot.forEach((doc) => {
-                    const post = doc.data();
-                    displayPost(post, postNumber, doc.id);
-                    postNumber++;
-                });
-            })
-            .catch((error) => {
-                console.error("投稿の読み込み中にエラーが発生しました:", error);
+        db.collection('posts').orderBy('timestamp').get()
+            .then(querySnapshot => {
+                const posts = querySnapshot.docs.map(doc => doc.data());
+                displayPosts(posts);
             });
     }
 
-    function displayPost(post, postNumber, docId) {
-        const postContainer = document.createElement("div");
-        postContainer.classList.add("post");
-        postContainer.id = `post-${postNumber}`;
+    function displayPosts(posts) {
+    const postsContainer = document.getElementById('posts');
+    postsContainer.innerHTML = '';
 
-        const postNumberElement = document.createElement("div");
-        postNumberElement.classList.add("post-number");
+    posts.forEach((post, index) => {
+        const postNumber = index + 1;
+        const postContainer = document.createElement('div');
+        postContainer.classList.add('post');
+        postContainer.id = `post-${postNumber}`;  // 各投稿にIDを追加
+
+        const postNumberElement = document.createElement('div');
+        postNumberElement.classList.add('post-number');
         postNumberElement.textContent = postNumber;
 
-        const contentContainer = document.createElement("div");
+        const contentContainer = document.createElement('div');
 
-        const nameElement = document.createElement("div");
-        nameElement.classList.add("name");
+        const nameElement = document.createElement('div');
+        nameElement.classList.add('name');
         nameElement.textContent = post.name;
-        nameElement.onclick = () => showEmailPopup(post.email);
 
-        const messageElement = document.createElement("div");
-        messageElement.classList.add("message");
-        messageElement.innerHTML = linkifyMessage(post.message);
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('message');
+        // リンク形式のメッセージに変換
+        const linkedMessage = post.message.replace(/>>(\d+)/g, (match, p1) => {
+            return `<a href="#post-${p1}" onclick="jumpToPost(${p1})">${match}</a>`;
+        });
+        messageElement.innerHTML = linkedMessage; // innerHTMLに変更してリンクを適用
 
-        const timestampElement = document.createElement("div");
-        timestampElement.classList.add("timestamp");
+        const timestampElement = document.createElement('div');
+        timestampElement.classList.add('timestamp');
         timestampElement.textContent = new Date(post.timestamp).toLocaleString();
 
         contentContainer.appendChild(nameElement);
@@ -189,63 +233,21 @@ function showEmailPopup(email) {
         postContainer.appendChild(postNumberElement);
         postContainer.appendChild(contentContainer);
 
-        document.getElementById("posts").appendChild(postContainer);
+        postsContainer.appendChild(postContainer);
+    });
+}
+
+// 特定の投稿へジャンプする関数
+function jumpToPost(postNumber) {
+    const targetPost = document.getElementById(`post-${postNumber}`);
+    if (targetPost) {
+        targetPost.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+}
 
-    function linkifyMessage(message) {
-        return message.replace(/>>(\d+)/g, (match, postNumber) => {
-            return `<a href="#post-${postNumber}" class="post-link">>>${postNumber}</a>`;
-        });
-    }
 
-    function showEmailPopup(email) {
-        document.getElementById("popupEmail").textContent = `メールアドレス: ${email}`;
-        document.getElementById("popup").style.display = "block";
-        document.getElementById("popupOverlay").style.display = "block";
-    }
-
-    function closePopup() {
-        document.getElementById("popup").style.display = "none";
-        document.getElementById("popupOverlay").style.display = "none";
-    }
-
-    function deletePost(postNumber) {
-        db.collection("posts").where("message", "==", `!#>>${postNumber}_delete`).get()
-            .then((querySnapshot) => {
-                querySnapshot.forEach((doc) => {
-                    doc.ref.delete()
-                        .then(() => {
-                            console.log(`投稿番号 ${postNumber} が削除されました`);
-                            loadPosts();
-                        })
-                        .catch((error) => {
-                            console.error("投稿の削除中にエラーが発生しました:", error);
-                        });
-                });
-            })
-            .catch((error) => {
-                console.error("投稿の検索中にエラーが発生しました:", error);
-            });
-    }
-
-    function deleteAllPosts() {
-        db.collection("posts").get()
-            .then((querySnapshot) => {
-                const batch = db.batch();
-
-                querySnapshot.forEach((doc) => {
-                    batch.delete(doc.ref);
-                });
-
-                return batch.commit();
-            })
-            .then(() => {
-                console.log("すべての投稿が削除されました");
-                loadPosts();
-            })
-            .catch((error) => {
-                console.error("すべての投稿の削除中にエラーが発生しました:", error);
-            });
+    function scrollToBottom() {
+        window.scrollTo(0, document.body.scrollHeight);
     }
 </script>
 
